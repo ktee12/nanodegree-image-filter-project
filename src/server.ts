@@ -1,6 +1,8 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import {filterImageFromURL, deleteLocalFiles} from './util/util';
+import fs from 'fs'; 
+import path from 'path';
+import {filterImageFromURL, deleteLocalFiles, ValidURL} from './util/util';
 
 (async () => {
 
@@ -37,6 +39,36 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
     res.send("try GET /filteredimage?image_url={{}}")
   } );
   
+  app.get( "/filteredimage", async ( req, res ) => {
+    const {image_url} = req.query;
+
+    //    1. validate the image_url query
+    if(!image_url || !ValidURL(image_url)){
+      return res.status(400)
+                .send(`The URL not found!!!`);
+    }
+
+    
+    //    2. call filterImageFromURL(image_url) to filter the image
+    //    3. send the resulting file in the response
+    //console.log(__dirname);
+    var filter = await filterImageFromURL(image_url);
+    // console.log(filter)
+    res.sendFile(filter);
+    res.on('finish', function() {
+      //console.log(`${__dirname}\\util\\tmp`);
+      const files = fs.readdirSync(path.join(__dirname, 'util/tmp'));
+      
+      //console.log(files);
+      if(files.length){
+      deleteLocalFiles(files)
+      }
+      
+    });
+    //res.send("try GET /filteredimage?image_url={{}}")
+  } );
+
+
 
   // Start the Server
   app.listen( port, () => {
